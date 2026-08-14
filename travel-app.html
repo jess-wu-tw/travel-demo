@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2bb673">
+<title>旅遊規劃</title>
+<style>
+  :root{
+    --bg:#f3faf6; --card:#fff; --ink:#1e293b; --muted:#64748b; --line:#e3eee8;
+    --brand:#2bb673; --brand-d:#1d9e5e; --brand-l:#e1f6ec;
+    --amber-bg:#fffbeb; --amber-line:#f59e0b; --amber-ink:#b45309;
+    --red:#ef4444; --shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.06); --radius:15px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  @media(max-width:768px){html,body{max-width:100%;overscroll-behavior-x:none}html{overflow-x:clip}}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;padding-bottom:82px}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:15px}
+  .wrap{max-width:720px;margin:0 auto;padding:0 16px}
+
+  header{background:linear-gradient(135deg,#2bb673,#159e8e);color:#fff;padding:14px 0;position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(15,23,42,.12)}
+  .topbar{display:flex;align-items:center;gap:8px}
+  .logo{font-size:22px}
+  .tripsel{flex:1;min-width:0;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:8px 10px;font-weight:700;max-width:340px}
+  .tripsel option{color:#1e293b}
+  .hbtn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:10px;width:38px;height:38px;font-size:18px;display:grid;place-items:center;flex:0 0 auto}
+  #syncDot{width:10px;height:10px;border-radius:50%;background:#fde68a;flex:0 0 auto;margin-left:2px}
+
+  main.wrap{padding-top:18px}
+  .view{display:none;animation:fade .2s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;margin-bottom:12px}
+  h2.sec{font-size:18px;margin:2px 0 12px;display:flex;align-items:center;gap:8px}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:10px;align-items:center}
+  .row>*{min-width:0}
+  .right{margin-left:auto}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:11px;padding:11px 16px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--brand-l);color:var(--brand-d)}
+  .btn.subtle{background:#f1f5f9;color:var(--ink)}
+  .btn.danger{background:#fef2f2;color:var(--red)}
+  .btn.block{width:100%;justify-content:center}
+  .btn.sm{padding:7px 11px;font-size:13px;border-radius:9px}
+  label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:12px 0 4px}
+  input.t,select.t,textarea.t{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);outline:none}
+  input.t:focus,select.t:focus,textarea.t:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-l)}
+  textarea.t{resize:vertical;min-height:70px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .two>*{min-width:0}
+  .empty{text-align:center;padding:40px 16px;color:var(--muted)}
+  .empty .big{font-size:44px;margin-bottom:8px}
+
+  .datefilter{display:flex;gap:8px;overflow-x:auto;padding:8px 0 10px;-webkit-overflow-scrolling:touch;position:sticky;top:var(--hh,64px);z-index:20;background:var(--bg);box-shadow:0 6px 8px -6px rgba(15,23,42,.12)}
+  .datefilter .chip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap}
+  .datefilter .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .dategroup{margin-bottom:16px}
+  .datehead{font-weight:800;font-size:15px;margin:2px 0 8px;display:flex;align-items:center;gap:8px}
+  .datehead .wd{color:var(--muted);font-weight:600;font-size:13px}
+
+  .plan{background:var(--card);border-radius:13px;box-shadow:var(--shadow);padding:13px;margin-bottom:9px;border-left:4px solid var(--brand)}
+  .plan.locked{background:var(--amber-bg);border-left-color:var(--amber-line)}
+  .plan .time{font-weight:800;color:var(--brand-d);font-size:14px}
+  .plan.locked .time{color:var(--amber-ink)}
+  .plan .imp{background:#fef3c7;color:var(--amber-ink);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .plan .cat{font-size:12px;color:var(--muted)}
+  .plan .name{font-weight:700;font-size:16px;margin:3px 0}
+  .plan .note{font-size:13px;color:var(--muted);white-space:pre-wrap;margin-top:3px}
+  .plan .note.clamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .plan .more{color:var(--brand-d);font-size:13px;font-weight:700;cursor:pointer;margin-top:3px;display:inline-block}
+  .plan .acts{display:flex;gap:6px;margin-top:9px}
+
+  .item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:none}
+  .item .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:var(--brand-l);flex:0 0 auto}
+  .item .nm{font-weight:700}
+  .item .acts{margin-left:auto;display:flex;gap:6px}
+  .grow{flex:1;min-width:0}
+  .txn{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .txn:last-child{border-bottom:none}
+
+  .fab{position:fixed;right:18px;bottom:92px;z-index:35;background:#159e8e;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:29px;box-shadow:0 8px 22px rgba(21,158,142,.45);display:grid;place-items:center}
+  .fab:active{transform:scale(.92)}
+
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:40;box-shadow:0 -2px 16px rgba(15,23,42,.06);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar button{flex:1;background:none;border:none;padding:9px 4px 11px;color:var(--muted);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tabbar button .ic{font-size:20px}
+  .tabbar button.active{color:var(--brand-d)}
+
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:60;display:none;align-items:flex-end;justify-content:center}
+  .modal.open{display:flex}
+  .sheet{background:var(--card);width:100%;max-width:720px;border-radius:20px 20px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;animation:up .26s cubic-bezier(.16,1,.3,1)}
+  @keyframes up{from{transform:translateY(100%)}to{transform:none}}
+  .sheet-head{display:flex;align-items:center;position:sticky;top:0;background:var(--card);padding:4px 0 8px;z-index:5}
+  .sheet-head h3{margin:0;font-size:18px}
+  .sheet-head .x{margin-left:auto;background:#f1f5f9;border:none;width:34px;height:34px;border-radius:50%;font-size:18px;color:var(--muted)}
+  @media(min-width:768px){.modal{align-items:center}.sheet{max-width:560px;max-height:88vh;border-radius:18px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="logo" style="display:inline-flex"><img id="logoImg" src="logo.png" alt="TYU" style="width:36px;height:36px;object-fit:contain;display:block"></span>
+      <select class="tripsel" id="tripSel" onchange="App.switchTrip(this.value)"></select>
+      <button class="hbtn" title="新增旅程" onclick="App.openTripModal()">＋</button>
+      <button class="hbtn" title="編輯旅程" onclick="App.openTripModal(App.data.active)">✎</button>
+      <button class="hbtn" id="meBtn" style="width:auto;padding:0 10px;max-width:110px" title="顯示名稱 / 登出" onclick="App.openNameModal()">👤</button>
+      <span id="syncDot" title="雲端狀態"></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="view active" id="view-plans"></section>
+  <section class="view" id="view-items"></section>
+  <section class="view" id="view-money"></section>
+</main>
+
+<button class="fab" id="fab" onclick="App.fab()">＋</button>
+
+<nav class="tabbar">
+  <button data-tab="plans" class="active" onclick="App.go('plans')"><span class="ic">🗓️</span>行程</button>
+  <button data-tab="items" onclick="App.go('items')"><span class="ic">📋</span>項目</button>
+  <button data-tab="money" onclick="App.go('money')"><span class="ic">💰</span>公費</button>
+</nav>
+
+<div class="modal" id="modal" onclick="if(event.target===this)App.close()"><div class="sheet" id="sheet"></div></div>
+
+<script>
+/* ================= 旅遊規劃 · 單檔 App ================= */
+const STORE='tripmate2';
+const ICATS={sight:{n:'景點',i:'📸'},restaurant:{n:'餐廳',i:'🍴'},hotel:{n:'飯店',i:'🏨'},airport:{n:'機場',i:'✈️'},other:{n:'其他',i:'📍'}};
+const TZS=[{v:-8,n:'UTC-8 美國西岸'},{v:-5,n:'UTC-5 美國東岸'},{v:0,n:'UTC+0 英國'},{v:1,n:'UTC+1 歐洲中部'},{v:5.5,n:'UTC+5:30 印度'},{v:7,n:'UTC+7 泰國/越南'},{v:8,n:'UTC+8 台灣/港/中'},{v:9,n:'UTC+9 日本/韓國'},{v:9.5,n:'UTC+9:30 澳洲中部'},{v:10,n:'UTC+10 澳洲東岸'},{v:12,n:'UTC+12 紐西蘭'}];
+const CURRENCIES=['TWD','JPY','KRW','USD','EUR','THB','HKD','SGD','CNY','GBP','AUD','VND'];
+const FB_CFG={"apiKey":"AIzaSyAsbG4O_xHZshLL763pVS9Zd5EcqezXWw4","authDomain":"tronice-test.firebaseapp.com","projectId":"tronice-test","storageBucket":"tronice-test.firebasestorage.app","messagingSenderId":"744867860966","appId":"1:744867860966:web:dcbd782046d8cfbcbec627"};
+const COLLECTION='travel_app';  /* Firestore 集合名稱：可自訂，但要與 Firestore 規則的 match 路徑一致 */
+
+const App={
+  data:{trips:[],active:null},
+  tab:'plans',
+  planFilter:'all',
+  user:null,_gate:false,
+
+  load(){
+    try{const r=localStorage.getItem(STORE);if(r)this.data=JSON.parse(r);}catch(e){}
+    if(!this.data.trips){ // 從舊的單一資料結構遷移
+      const items=this.data.items||[],plans=this.data.plans||[];
+      this.data={trips:(items.length||plans.length)?[{id:this.uid(),name:'我的旅程',items,plans}]:[],active:null};
+    }
+    if(!this.data.active||!this.trip())this.data.active=this.data.trips[0]?.id||null;
+  },
+  save(){try{localStorage.setItem(STORE,JSON.stringify(this.data));}catch(e){}this.sync.pushActive();},
+  uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)},
+  trip(){return this.data.trips.find(t=>t.id===this.data.active)||null},
+
+  esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))},
+  itemById(id){const t=this.trip();return t?(t.items.find(x=>x.id===id)||null):null},
+  cat(k){return ICATS[k]||ICATS.other},
+  wd(d){return ['日','一','二','三','四','五','六'][new Date(d+'T00:00').getDay()]},
+  fmtDate(d){const dt=new Date(d+'T00:00');return (dt.getMonth()+1)+'月'+dt.getDate()+'日'},
+  fmtChip(d){if(d==='0000-00-00')return '未定';const dt=new Date(d+'T00:00');return (dt.getMonth()+1)+'/'+dt.getDate()+' ('+this.wd(d)+')'},
+  mapUrl(it){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((it&&(it.addr||it.name))||'')},
+  homeTimeStr(tz,timeStr){if(!timeStr)return '';tz=Number(tz);const htz=8;if(isNaN(tz)||tz===htz)return '';const p=timeStr.split(':');let total=Number(p[0])*60+Number(p[1])+(htz-tz)*60;let ds=0;while(total<0){total+=1440;ds--;}while(total>=1440){total-=1440;ds++;}const hh=String(Math.floor(total/60)).padStart(2,'0'),mm=String(total%60).padStart(2,'0');return hh+':'+mm+(ds>0?'（隔天）':ds<0?'（前一天）':'');},
+  tzDiffLabel(tz){tz=Number(tz);const htz=8;if(isNaN(tz)||tz===htz)return '';const d=tz-htz;return '目的地時間比台灣'+(d>0?'快 ':'慢 ')+Math.abs(d)+' 小時';},
+
+  init(){this.load();this.debgLogo();this.startAuth();},
+  async startAuth(){
+    try{await this.sync.ensureDb();}catch(e){this.showGate('（Google 登入需在部署後的 https 網址使用，本機 file:// 或無網路無法登入）');return;}
+    try{await firebase.auth().getRedirectResult();}catch(e){setTimeout(()=>alert('Google 登入錯誤：'+((e&&(e.message||e.code))||e)),400);}
+    firebase.auth().onAuthStateChanged(u=>{this.user=u;if(u)this.onSignedIn(u);else this.showGate();});
+  },
+  onSignedIn(u){
+    this._gate=false;this.close();
+    this.renderTripSel();this.renderMe();this.go(this.tab);this.sync.connect();
+    if(!this.getName())this.openNameModal(u.displayName||'');
+  },
+  showGate(msg){
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>👋 歡迎使用旅遊規劃</h3></div>
+      <p class="muted" style="font-size:14px;margin:2px 0 16px">請先用 Google 登入，之後你建立的項目與行程都會標示是誰安排的。${msg?'<br><br>'+msg:''}</p>
+      <button class="btn block" onclick="App.signIn()">使用 Google 登入</button>`;
+    this._gate=true;document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';
+  },
+  signIn(){
+    try{
+      const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+      firebase.auth().signInWithPopup(p).catch(e=>{
+        const c=e&&e.code;
+        if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request')return;
+        if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment'){firebase.auth().signInWithRedirect(p);return;}
+        alert('登入失敗：'+((e&&(e.message||c))||e));
+      });
+    }catch(e){alert('登入元件尚未就緒，請重新整理頁面再試');}
+  },
+  signOut(){try{firebase.auth().signOut();}catch(e){}},
+  getName(){try{return localStorage.getItem('tm2_name')||''}catch(e){return ''}},
+  renderMe(){const b=document.getElementById('meBtn');if(b)b.innerHTML='👤 '+this.esc(this.getName()||'設定名稱');},
+  openNameModal(prefill){
+    const cur=this.getName();
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>👤 顯示名稱</h3>${cur?'<button class="x" onclick="App.close()">×</button>':''}</div>
+      <p class="muted" style="font-size:13px;margin:2px 0 12px">設定你在這個 app 裡要顯示的名稱（會標在你建立的項目與行程上）。已用 <b>${this.esc((this.user&&this.user.email)||'Google')}</b> 登入。</p>
+      <label class="f">顯示名稱 *</label><input class="t" id="nm_name" placeholder="例：小巫" value="${this.esc(cur||prefill||'')}">
+      <button class="btn block" style="margin-top:16px" onclick="App.saveName()">儲存</button>
+      <button class="btn subtle block" style="margin-top:8px" onclick="App.signOut()">登出</button>`;
+    this.open();
+  },
+  saveName(){const n=document.getElementById('nm_name').value.trim();if(!n){alert('請輸入名稱');return;}try{localStorage.setItem('tm2_name',n);}catch(e){}this.close();this.renderMe();this.render();},
+  debgLogo(){
+    const img=document.getElementById('logoImg');if(!img)return;
+    const run=()=>{
+      if(img.dataset.debg)return;
+      try{
+        const w=img.naturalWidth,h=img.naturalHeight;if(!w)return;
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+        const im=ctx.getImageData(0,0,w,h),a=im.data,vis=new Uint8Array(w*h);
+        const isBg=p=>{p*=4;return (a[p]*0.299+a[p+1]*0.587+a[p+2]*0.114)>215;};
+        const st=[];for(let x=0;x<w;x++){st.push(x,(h-1)*w+x);}for(let y=0;y<h;y++){st.push(y*w,y*w+w-1);}
+        while(st.length){const p=st.pop();if(vis[p])continue;vis[p]=1;if(!isBg(p))continue;a[p*4+3]=0;const x=p%w,y=(p/w)|0;if(x>0)st.push(p-1);if(x<w-1)st.push(p+1);if(y>0)st.push(p-w);if(y<h-1)st.push(p+w);}
+        ctx.putImageData(im,0,0);img.dataset.debg='1';img.onload=null;img.src=c.toDataURL('image/png');
+      }catch(e){}
+    };
+    if(img.complete&&img.naturalWidth)run();else img.addEventListener('load',run);
+  },
+  go(tab){
+    this.tab=tab;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+tab).classList.add('active');
+    document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    this.render();window.scrollTo({top:0,behavior:'smooth'});
+  },
+  fab(){if(!this.trip()){this.openTripModal();return;}if(this.tab==='items')this.openItem();else if(this.tab==='money')this.openExpense();else this.openPlan();},
+  render(){this.ensureMember(this.trip());this.renderTripSel();this.renderMe();this.renderPlans();this.renderItems();this.renderMoney();this.setHeaderH();},
+  setHeaderH(){const h=document.querySelector('header');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');},
+  money(n,c){n=Number(n)||0;return (c||'')+' '+n.toLocaleString(undefined,{maximumFractionDigits:0})},
+  ensureMember(t){
+    if(!t||!this.user)return;if(!t.members)t.members=[];
+    const uid=this.user.uid,name=this.getName();if(!name)return;
+    const ex=t.members.find(m=>m.uid===uid);
+    if(!ex){t.members.push({uid,name});this.save();}
+    else if(ex.name!==name){ex.name=name;this.save();}
+  },
+
+  renderTripSel(){
+    const sel=document.getElementById('tripSel');
+    sel.innerHTML=this.data.trips.length?this.data.trips.map(t=>`<option value="${t.id}" ${t.id===this.data.active?'selected':''}>${this.esc(t.name)}</option>`).join(''):'<option>尚無旅程（按 ＋ 新增）</option>';
+  },
+  switchTrip(id){this.data.active=id;this.save();this.render();},
+
+  /* ================= 旅程 ================= */
+  openTripModal(id){
+    let t={id:'',name:''};
+    if(id){const f=this.data.trips.find(x=>x.id===id);if(f)t={id:f.id,name:f.name};}
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>${id?'✎ 編輯旅程':'🧳 新增旅程'}</h3><button class="x" onclick="App.close()">×</button></div>
+      <label class="f">旅程名稱 *</label><input class="t" id="tr_name" placeholder="例：韓國追星之旅" value="${this.esc(t.name)}">
+      ${id?`<label class="f">邀請連結（只有拿到此連結的人才看得到這趟）</label>
+        <div class="row"><input class="t" readonly value="${this.esc(this.inviteLink(id))}" onclick="this.select()" style="font-size:12px"><button type="button" class="btn sm" onclick="App.copyInvite('${id}')">複製</button></div>`
+      :`<button type="button" class="btn subtle block" style="margin-top:14px" onclick="App.promptJoin()">🔗 用邀請連結加入旅程</button>`}
+      <button class="btn block" style="margin-top:16px" onclick="App.saveTrip('${id||''}')">儲存</button>
+      ${id?`<button class="btn danger block" style="margin-top:8px" onclick="App.delTrip('${id}')">刪除此旅程</button>`:''}`;
+    this.open();
+  },
+  saveTrip(id){
+    const name=document.getElementById('tr_name').value.trim();
+    if(!name){alert('請輸入旅程名稱');return;}
+    if(id){const t=this.data.trips.find(x=>x.id===id);if(t)t.name=name;}
+    else{const t={id:this.uid(),name,items:[],plans:[]};this.data.trips.push(t);this.data.active=t.id;this.sync.subscribe(t.id);}
+    this.save();this.close();this.render();
+  },
+  delTrip(id){
+    if(!confirm('刪除旅程會一併刪除它的所有項目與行程，確定？'))return;
+    this.sync.unsubscribe(id);
+    this.data.trips=this.data.trips.filter(t=>t.id!==id);
+    this.data.active=this.data.trips[0]?.id||null;
+    this.save();this.close();this.render();
+  },
+
+  /* ================= 行程 ================= */
+  renderPlans(){
+    const el=document.getElementById('view-plans');const t=this.trip();
+    if(!t){el.innerHTML=this.noTripHtml();return;}
+    let html=`<div class="row" style="margin-bottom:12px"><h2 class="sec" style="margin:0">🗓️ 行程</h2>
+      <button class="right btn ghost sm" onclick="App.openPlan()">＋ 新增行程</button></div>`;
+    if(!t.plans.length){el.innerHTML=html+`<div class="card empty"><div class="big">🗓️</div>還沒有行程<br>
+      <div class="muted" style="margin:6px 0 12px">先到「項目」建立地點，再來安排行程</div>
+      <button class="btn" onclick="App.openPlan()">＋ 新增行程</button></div>`;return;}
+    const byDate={};t.plans.forEach(p=>{const d=p.date||'0000-00-00';(byDate[d]=byDate[d]||[]).push(p);});
+    const dates=Object.keys(byDate).sort();
+    if(this.planFilter!=='all'&&!dates.includes(this.planFilter))this.planFilter='all';
+    if(dates.length>1){
+      html+=`<div class="datefilter"><div class="chip ${this.planFilter==='all'?'on':''}" onclick="App.setPlanFilter('all')">全部</div>`+
+        dates.map(d=>`<div class="chip ${this.planFilter===d?'on':''}" onclick="App.setPlanFilter('${d}')">${this.fmtChip(d)}</div>`).join('')+'</div>';
+    }
+    const showDates=this.planFilter==='all'?dates:dates.filter(d=>d===this.planFilter);
+    showDates.forEach(d=>{
+      const list=byDate[d].sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+      html+=`<div class="dategroup"><div class="datehead">${d==='0000-00-00'?'未設定日期':this.fmtDate(d)}${d!=='0000-00-00'?`<span class="wd">(週${this.wd(d)})</span>`:''}</div>`;
+      list.forEach(p=>{
+        const it=this.itemById(p.itemId);const c=this.cat(it&&it.cat);
+        html+=`<div class="plan ${p.locked?'locked':''}">
+          <div class="row"><span class="time">${p.time||'--:--'}</span>
+            ${this.homeTimeStr(p.tz,p.time)?`<span class="muted" style="font-size:12px">🇹🇼 台灣 ${this.homeTimeStr(p.tz,p.time)}</span>`:''}
+            ${p.locked?'<span class="imp">⚠️ 重要</span>':''}
+            <span class="right cat">${c.i} ${c.n}</span></div>
+          <div class="name">${it?this.esc(it.name):'<span class="muted">（項目已刪除）</span>'}</div>
+          ${it&&it.addr?`<div class="cat" style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap">📍 ${this.esc(it.addr)}<button class="btn subtle sm" style="padding:2px 9px;font-size:11px" onclick="App.copyAddr('${it.id}')">📋 複製</button></div>`:''}
+          ${p.note?`<div class="note clamp" data-plan="${p.id}">${this.esc(p.note)}</div>`:''}
+          ${p.by?`<div class="muted" style="font-size:11px;margin-top:5px">👤 ${this.esc(p.by)} 建立</div>`:''}
+          <div class="acts"><button class="btn subtle sm" onclick="App.openPlan('${p.id}')">✏️ 編輯</button>
+            ${it?`<a class="btn ghost sm" href="${this.mapUrl(it)}" target="_blank" style="text-decoration:none">🗺️ 地圖</a>`:''}
+            <button class="btn danger sm" onclick="App.delPlan('${p.id}')">🗑️</button></div></div>`;
+      });
+      html+='</div>';
+    });
+    el.innerHTML=html;
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('#view-plans .note.clamp').forEach(n=>{
+        if(n.scrollHeight>n.clientHeight+2&&!(n.nextElementSibling&&n.nextElementSibling.classList.contains('more'))){
+          const a=document.createElement('span');a.className='more';a.textContent='… more';
+          a.onclick=(e)=>{e.stopPropagation();App.openPlanDetail(n.dataset.plan);};
+          n.after(a);
+        }
+      });
+    });
+  },
+  openPlanDetail(id){
+    const t=this.trip();const p=t&&t.plans.find(x=>x.id===id);if(!p)return;
+    const it=this.itemById(p.itemId);const c=this.cat(it&&it.cat);const ht=this.homeTimeStr(p.tz,p.time);
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>${c.i} ${it?this.esc(it.name):'（項目已刪除）'}</h3><button class="x" onclick="App.close()">×</button></div>
+      <div class="muted" style="font-size:13px;margin-bottom:8px">${p.date?this.fmtDate(p.date)+' (週'+this.wd(p.date)+')':''}${p.time?' · '+p.time+(ht?'（🇹🇼 台灣 '+ht+'）':''):''}${p.locked?' · ⚠️ 重要':''}</div>
+      ${it&&it.addr?`<div style="font-size:14px;margin-bottom:10px">📍 ${this.esc(it.addr)} &nbsp;<a href="${this.mapUrl(it)}" target="_blank" style="color:var(--brand-d);font-size:13px;font-weight:700">地圖</a></div>`:''}
+      ${p.note?`<div style="font-size:14px;white-space:pre-wrap;line-height:1.75;color:#334155">${this.esc(p.note)}</div>`:'<div class="muted">（無備註）</div>'}
+      <button class="btn subtle block" style="margin-top:18px" onclick="App.openPlan('${id}')">✏️ 編輯此行程</button>`;
+    this.open();
+  },
+  openPlan(id){
+    const t=this.trip();if(!t)return;
+    if(!t.items.length){alert('請先到「項目」建立至少一個地點，再安排行程。');this.go('items');return;}
+    let p={id:'',itemId:'',date:'',time:'',tz:8,locked:false,note:''};
+    if(id){const f=t.plans.find(x=>x.id===id);if(f)p=JSON.parse(JSON.stringify(f));}
+    const H=parseInt((p.time||'').split(':')[0]),M=parseInt((p.time||'').split(':')[1]);
+    const hOpts='<option value="">時</option>'+Array.from({length:24},(_,h)=>{const v=String(h).padStart(2,'0');return `<option value="${v}" ${h===H?'selected':''}>${v}</option>`}).join('');
+    const mOpts='<option value="">分</option>'+Array.from({length:60},(_,m)=>{const v=String(m).padStart(2,'0');return `<option value="${v}" ${m===M?'selected':''}>${v}</option>`}).join('');
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>${id?'✏️ 編輯行程':'🗓️ 新增行程'}</h3><button class="x" onclick="App.close()">×</button></div>
+      <label class="f">項目 *</label>
+      <select class="t" id="p_item"><option value="" ${!p.itemId?'selected':''}>—</option>${t.items.map(it=>`<option value="${it.id}" ${it.id===p.itemId?'selected':''}>${this.cat(it.cat).i} ${this.esc(it.name)}</option>`).join('')}</select>
+      <label class="f">日期 *</label><input class="t" type="date" id="p_date" value="${p.date}">
+      <label class="f">時間（24 小時制 · 當地時間）</label>
+      <div class="two"><select class="t" id="p_h">${hOpts}</select><select class="t" id="p_m">${mOpts}</select></div>
+      <label class="f">時區（預設台灣，非台灣會換算台灣時間）</label>
+      <select class="t" id="p_tz">${TZS.map(z=>`<option value="${z.v}" ${(p.tz==null?8:Number(p.tz))===z.v?'selected':''}>${z.n}</option>`).join('')}</select>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--amber-bg);cursor:pointer;font-weight:600;font-size:14px">
+        <input type="checkbox" id="p_locked" ${p.locked?'checked':''} style="width:18px;height:18px"> 🔒 不可異動（標示為重要）</label>
+      <label class="f">備註</label><textarea class="t" id="p_note" placeholder="提醒、預約號碼、注意事項…">${this.esc(p.note)}</textarea>
+      <button class="btn block" style="margin-top:16px" onclick="App.savePlan('${id||''}')">儲存</button>
+      ${id?`<button class="btn danger block" style="margin-top:8px" onclick="App.delPlan('${id}')">刪除行程</button>`:''}`;
+    this.open();
+  },
+  savePlan(id){
+    const t=this.trip();const itemId=document.getElementById('p_item').value;
+    if(!itemId){alert('請選擇項目');return;}
+    const date=document.getElementById('p_date').value;
+    if(!date){alert('請選擇日期');return;}
+    const h=document.getElementById('p_h').value,m=document.getElementById('p_m').value;
+    let by=this.getName(),byUid=this.user&&this.user.uid;if(id){const old=t.plans.find(x=>x.id===id);if(old){by=old.by||by;byUid=old.byUid||byUid;}}
+    const obj={id:id||this.uid(),itemId,date,byUid,
+      time:h!==''?h+':'+(m||'00'):'',tz:parseFloat(document.getElementById('p_tz').value),
+      locked:document.getElementById('p_locked').checked,note:document.getElementById('p_note').value.trim(),by};
+    if(id){const i=t.plans.findIndex(x=>x.id===id);if(i>-1)t.plans[i]=obj;}else t.plans.push(obj);
+    this.save();this.close();this.renderPlans();
+  },
+  setPlanFilter(d){this.planFilter=d;this.renderPlans();},
+  delPlan(id){if(!confirm('確定刪除這筆行程？'))return;const t=this.trip();t.plans=t.plans.filter(x=>x.id!==id);this.save();this.close();this.renderPlans();},
+
+  /* ================= 項目 ================= */
+  renderItems(){
+    const el=document.getElementById('view-items');const t=this.trip();
+    if(!t){el.innerHTML=this.noTripHtml();return;}
+    let html=`<div class="row" style="margin-bottom:12px"><h2 class="sec" style="margin:0">📋 項目</h2>
+      <button class="right btn ghost sm" onclick="App.openItem()">＋ 新增項目</button></div>`;
+    if(!t.items.length){el.innerHTML=html+`<div class="card empty"><div class="big">📋</div>還沒有項目<br>
+      <div class="muted" style="margin:6px 0 12px">先建立地點（景點、餐廳、飯店…），行程才能選用</div>
+      <button class="btn" onclick="App.openItem()">＋ 新增項目</button></div>`;return;}
+    const items=t.items.slice().sort((a,b)=>a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name));
+    html+='<div class="card">'+items.map(it=>{const c=this.cat(it.cat);
+      return `<div class="item"><div class="ic">${c.i}</div>
+        <div style="min-width:0"><div class="nm">${this.esc(it.name)}</div>
+          <div class="muted" style="font-size:12px">${c.n}${it.addr?' · 📍'+this.esc(it.addr):(it.note?' · '+this.esc(it.note):'')}${it.by?' · 👤'+this.esc(it.by):''}</div></div>
+        <div class="acts">${(it.addr||it.name)?`<a class="btn ghost sm" href="${this.mapUrl(it)}" target="_blank" style="text-decoration:none">🗺️</a>`:''}
+          <button class="btn subtle sm" onclick="App.openItem('${it.id}')">✏️</button>
+          <button class="btn danger sm" onclick="App.delItem('${it.id}')">🗑️</button></div></div>`;
+    }).join('')+'</div>';
+    el.innerHTML=html;
+  },
+  openItem(id){
+    const t=this.trip();if(!t){this.openTripModal();return;}
+    let it={id:'',name:'',cat:'sight',addr:'',note:''};
+    if(id){const f=t.items.find(x=>x.id===id);if(f)it=JSON.parse(JSON.stringify(f));}
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>${id?'✏️ 編輯項目':'📋 新增項目'}</h3><button class="x" onclick="App.close()">×</button></div>
+      <label class="f">名稱 *</label><input class="t" id="i_name" placeholder="例：晴空塔" value="${this.esc(it.name)}">
+      <label class="f">類別</label>
+      <select class="t" id="i_cat">${Object.entries(ICATS).map(([k,v])=>`<option value="${k}" ${k===it.cat?'selected':''}>${v.i} ${v.n}</option>`).join('')}</select>
+      <label class="f">地址（用於 Google 地圖）</label><input class="t" id="i_addr" placeholder="例：東京都墨田区押上…" value="${this.esc(it.addr)}">
+      <label class="f">備註</label><textarea class="t" id="i_note" placeholder="營業時間、參考連結…">${this.esc(it.note)}</textarea>
+      <button class="btn block" style="margin-top:16px" onclick="App.saveItem('${id||''}')">儲存</button>
+      ${id?`<button class="btn danger block" style="margin-top:8px" onclick="App.delItem('${id}')">刪除項目</button>`:''}`;
+    this.open();
+  },
+  saveItem(id){
+    const t=this.trip();const name=document.getElementById('i_name').value.trim();
+    if(!name){alert('請輸入名稱');return;}
+    let by=this.getName(),byUid=this.user&&this.user.uid;if(id){const old=t.items.find(x=>x.id===id);if(old){by=old.by||by;byUid=old.byUid||byUid;}}
+    const obj={id:id||this.uid(),name,cat:document.getElementById('i_cat').value,addr:document.getElementById('i_addr').value.trim(),note:document.getElementById('i_note').value.trim(),by,byUid};
+    if(id){const i=t.items.findIndex(x=>x.id===id);if(i>-1)t.items[i]=obj;}else t.items.push(obj);
+    this.save();this.close();this.render();
+  },
+  delItem(id){
+    const t=this.trip();const used=t.plans.filter(p=>p.itemId===id).length;
+    if(!confirm('確定刪除此項目？'+(used?'\n（有 '+used+' 筆行程使用，刪除後那些行程會顯示「項目已刪除」）':'')))return;
+    t.items=t.items.filter(x=>x.id!==id);this.save();this.close();this.render();
+  },
+
+  noTripHtml(){return `<div class="card empty"><div class="big">🧳</div>還沒有旅程<br>
+    <div class="muted" style="margin:6px 0 12px">建立第一個旅程，開始規劃</div>
+    <button class="btn" onclick="App.openTripModal()">＋ 新增旅程</button></div>`;},
+
+  /* ================= 公費（收支表） ================= */
+  memberNames(t){return (t.members||[]).map(m=>m.name).filter(Boolean);},
+  memberCount(t){return Math.max(1,(t.members||[]).length);},
+  fundByCur(t){const o={};(t.fund||[]).forEach(f=>{const c=f.cur||'TWD';o[c]=(o[c]||0)+(Number(f.amount)||0);});return o;},
+  expByCur(t){const o={};(t.expenses||[]).forEach(e=>{const c=e.cur||'TWD';o[c]=(o[c]||0)+(Number(e.amount)||0);});return o;},
+  today(){return new Date().toISOString().slice(0,10);},
+  rates:null,_ratesLoading:false,
+  async ensureRates(){
+    if(this.rates)return;
+    try{const c=JSON.parse(localStorage.getItem('tm2_rates')||'null');if(c&&c.date===this.today()&&c.rates){this.rates=c.rates;return;}}catch(e){}
+    if(this._ratesLoading)return;this._ratesLoading=true;
+    try{const r=await fetch('https://open.er-api.com/v6/latest/TWD');const j=await r.json();
+      if(j&&j.rates){this.rates=j.rates;try{localStorage.setItem('tm2_rates',JSON.stringify({date:this.today(),rates:j.rates}));}catch(e){}if(this.tab==='money')this.renderMoney();}
+    }catch(e){}this._ratesLoading=false;
+  },
+  toTWD(a,c){if(c==='TWD')return Number(a)||0;if(this.rates&&this.rates[c])return (Number(a)||0)/this.rates[c];return null;},
+  twdLine(a,c){if(c==='TWD')return '';const v=this.toTWD(a,c);return v==null?'':'≈ '+this.money(v,'TWD');},
+  renderMoney(){
+    const el=document.getElementById('view-money');const t=this.trip();
+    if(!t){el.innerHTML=this.noTripHtml();return;}
+    this.ensureRates();
+    const fundCur=this.fundByCur(t),expCur=this.expByCur(t);
+    const curs=[...new Set([...Object.keys(fundCur),...Object.keys(expCur)])].sort((a,b)=>(a==='TWD'?-1:b==='TWD'?1:0));
+    const N=this.memberCount(t);
+    let html=`<div class="row" style="margin-bottom:8px"><h2 class="sec" style="margin:0">💰 公費</h2>
+      <button class="right btn ghost sm" onclick="App.openSettlement()">💵 結算</button></div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">成員（＝加入這趟的人，點名字看收付）：${this.memberNames(t).map(n=>`<a onclick="App.openMemberDetail('${this.esc(n).replace(/'/g,'&#39;')}')" style="color:var(--brand-d);cursor:pointer;font-weight:600">${this.esc(n)}</a>`).join('、')||'（開啟過此旅程的人會自動加入）'}</div>
+      <div class="row" style="gap:8px;margin-bottom:12px">
+        <button class="btn ghost sm grow" onclick="App.openFund()">＋ 收公積金</button>
+        <button class="btn ghost sm grow" onclick="App.openExpense()">＋ 記公費</button></div>`;
+    if(!curs.length){el.innerHTML=html+`<div class="card empty"><div class="big">💰</div>還沒有收支<br><div class="muted" style="margin:6px 0 0">先「收公積金」或「記公費」</div></div>`;return;}
+    html+='<div class="card"><b>收支總表</b>';
+    curs.forEach(c=>{const inc=fundCur[c]||0,exp=expCur[c]||0,bal=inc-exp;
+      html+=`<div style="padding:11px 0;border-top:1px solid var(--line)">
+        <div class="row"><b>${c}</b><span class="right" style="font-weight:800;color:${bal<0?'var(--red)':'#0891b2'}">結餘 ${this.money(bal,c)}</span></div>
+        <div class="muted" style="font-size:12px;margin-top:3px">收入（公積金）${this.money(inc,c)}　支出（公費）${this.money(exp,c)}${this.twdLine(bal,c)?'　結餘 '+this.twdLine(bal,c):''}</div></div>`;});
+    html+='</div>';
+    const txns=[];
+    (t.fund||[]).forEach(f=>txns.push({id:f.id,kind:'fund',date:f.date||'',type:'in',amount:Number(f.amount)||0,cur:f.cur||'TWD',label:'公積金 · '+(f.who||'')}));
+    (t.expenses||[]).forEach(e=>txns.push({id:e.id,kind:'exp',date:e.date||'',type:'out',amount:Number(e.amount)||0,cur:e.cur||'TWD',label:'公費 · '+(e.note||'支出')+(e.payer?'（'+e.payer+(e.payer==='公積金'?'':' 代墊')+'）':'')}));
+    txns.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    html+='<div class="card"><b>收支明細</b>';
+    if(!txns.length)html+='<div class="muted" style="font-size:13px;margin-top:8px">尚無紀錄</div>';
+    else txns.forEach(x=>{html+=`<div class="txn" onclick="App.${x.kind==='fund'?'openFund':'openExpense'}('${x.id}')">
+      <div style="min-width:0;flex:1"><div style="font-weight:600">${this.esc(x.label)}</div><div class="muted" style="font-size:12px">${x.date||'—'}</div></div>
+      <div style="font-weight:800;white-space:nowrap;color:${x.type==='in'?'#10b981':'var(--red)'}">${x.type==='in'?'+ ':'− '}${this.money(x.amount,x.cur)}</div></div>`;});
+    html+='</div>';el.innerHTML=html;
+  },
+  openFund(id){
+    const t=this.trip();if(!t)return;const members=this.memberNames(t);
+    let f={id:'',who:this.getName()||members[0]||'',amount:'',cur:'TWD',date:this.today(),note:''};
+    if(id){const x=(t.fund||[]).find(y=>y.id===id);if(x)f=JSON.parse(JSON.stringify(x));}
+    const opts=(members.length?members:[f.who].filter(Boolean));
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>🏦 收公積金（預收）</h3><button class="x" onclick="App.close()">×</button></div>
+      <label class="f">誰預繳</label><select class="t" id="fd_who">${opts.map(n=>`<option ${n===f.who?'selected':''}>${this.esc(n)}</option>`).join('')||'<option>'+this.esc(this.getName())+'</option>'}</select>
+      <div class="two"><div><label class="f">金額 *</label><input class="t" type="number" id="fd_amt" inputmode="decimal" value="${f.amount}"></div>
+        <div><label class="f">幣別</label><select class="t" id="fd_cur">${CURRENCIES.map(c=>`<option ${c===f.cur?'selected':''}>${c}</option>`).join('')}</select></div></div>
+      <label class="f">日期</label><input class="t" type="date" id="fd_date" value="${f.date}">
+      <label class="f">備註</label><input class="t" id="fd_note" value="${this.esc(f.note||'')}">
+      <button class="btn block" style="margin-top:16px" onclick="App.saveFund('${id||''}')">儲存</button>
+      ${id?`<button class="btn danger block" style="margin-top:8px" onclick="App.delFund('${id}')">刪除</button>`:''}`;
+    this.open();
+  },
+  saveFund(id){
+    const t=this.trip();const amt=parseFloat(document.getElementById('fd_amt').value);
+    if(!(amt>0)){alert('請輸入金額');return;}
+    const obj={id:id||this.uid(),who:document.getElementById('fd_who').value,amount:amt,cur:document.getElementById('fd_cur').value,date:document.getElementById('fd_date').value,note:document.getElementById('fd_note').value.trim(),by:this.getName()};
+    if(!t.fund)t.fund=[];if(id){const i=t.fund.findIndex(x=>x.id===id);if(i>-1)t.fund[i]=obj;}else t.fund.push(obj);
+    this.save();this.close();this.renderMoney();
+  },
+  delFund(id){if(!confirm('確定刪除這筆公積金？'))return;const t=this.trip();t.fund=(t.fund||[]).filter(x=>x.id!==id);this.save();this.close();this.renderMoney();},
+  openExpense(id){
+    const t=this.trip();if(!t)return;const members=this.memberNames(t);
+    let e={id:'',amount:'',cur:'TWD',payer:'公積金',date:this.today(),note:''};
+    if(id){const x=(t.expenses||[]).find(y=>y.id===id);if(x)e=JSON.parse(JSON.stringify(x));}
+    document.getElementById('sheet').innerHTML=`
+      <div class="sheet-head"><h3>💸 記公費支出</h3><button class="x" onclick="App.close()">×</button></div>
+      <div class="two"><div><label class="f">金額 *</label><input class="t" type="number" id="ex_amt" inputmode="decimal" value="${e.amount}"></div>
+        <div><label class="f">幣別</label><select class="t" id="ex_cur">${CURRENCIES.map(c=>`<option ${c===e.cur?'selected':''}>${c}</option>`).join('')}</select></div></div>
+      <label class="f">付款來源</label>
+      <select class="t" id="ex_payer"><option value="公積金" ${e.payer==='公積金'?'selected':''}>🏦 從公積金支出</option>${members.map(n=>`<option value="${this.esc(n)}" ${e.payer===n?'selected':''}>🙋 ${this.esc(n)} 代墊</option>`).join('')}</select>
+      <label class="f">分攤成員（勾選要平分這筆的人，預設全員）</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:2px 0">${members.map(n=>`<label style="display:flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer"><input type="checkbox" class="ex_split" value="${this.esc(n)}" ${(e.split?e.split.includes(n):true)?'checked':''}>${this.esc(n)}</label>`).join('')||'<span class="muted" style="font-size:13px">尚無成員</span>'}</div>
+      <label class="f">說明</label><input class="t" id="ex_note" placeholder="例：晚餐、車票" value="${this.esc(e.note||'')}">
+      <label class="f">日期</label><input class="t" type="date" id="ex_date" value="${e.date}">
+      <button class="btn block" style="margin-top:16px" onclick="App.saveExpense('${id||''}')">儲存</button>
+      ${id?`<button class="btn danger block" style="margin-top:8px" onclick="App.delExpense('${id}')">刪除</button>`:''}`;
+    this.open();
+  },
+  saveExpense(id){
+    const t=this.trip();const amt=parseFloat(document.getElementById('ex_amt').value);
+    if(!(amt>0)){alert('請輸入金額');return;}
+    const split=Array.from(document.querySelectorAll('.ex_split:checked')).map(x=>x.value);
+    if(this.memberNames(t).length&&!split.length){alert('請至少勾選一位分攤成員');return;}
+    const obj={id:id||this.uid(),amount:amt,cur:document.getElementById('ex_cur').value,payer:document.getElementById('ex_payer').value,split,note:document.getElementById('ex_note').value.trim(),date:document.getElementById('ex_date').value,by:this.getName()};
+    if(!t.expenses)t.expenses=[];if(id){const i=t.expenses.findIndex(x=>x.id===id);if(i>-1)t.expenses[i]=obj;}else t.expenses.push(obj);
+    this.save();this.close();this.renderMoney();
+  },
+  delExpense(id){if(!confirm('確定刪除這筆公費？'))return;const t=this.trip();t.expenses=(t.expenses||[]).filter(x=>x.id!==id);this.save();this.close();this.renderMoney();},
+  fundByMemberCur(t,name,c){return (t.fund||[]).filter(f=>f.who===name&&(f.cur||'TWD')===c).reduce((a,f)=>a+(Number(f.amount)||0),0);},
+  paidByMemberCur(t,name,c){return this.fundByMemberCur(t,name,c)+(t.expenses||[]).filter(e=>e.payer===name&&(e.cur||'TWD')===c).reduce((a,e)=>a+(Number(e.amount)||0),0);},
+  owedByMemberCur(t,name,c){const all=this.memberNames(t);let s=0;(t.expenses||[]).forEach(e=>{if((e.cur||'TWD')!==c)return;const sp=(e.split&&e.split.length)?e.split.filter(n=>all.includes(n)):all;if(sp.length&&sp.includes(name))s+=(Number(e.amount)||0)/sp.length;});return s;},
+  settleCur(t,c){
+    const members=this.memberNames(t);
+    const bal=members.map(m=>({m,b:this.paidByMemberCur(t,m,c)-this.owedByMemberCur(t,m,c)}));
+    const cred=bal.filter(x=>x.b>0.005).map(x=>({m:x.m,amt:x.b})).sort((a,b)=>b.amt-a.amt);
+    const debt=bal.filter(x=>x.b<-0.005).map(x=>({m:x.m,amt:-x.b})).sort((a,b)=>b.amt-a.amt);
+    const trs=[];let ci=0,di=0;
+    while(ci<cred.length&&di<debt.length){const pay=Math.min(cred[ci].amt,debt[di].amt);trs.push({from:debt[di].m,to:cred[ci].m,amt:pay});cred[ci].amt-=pay;debt[di].amt-=pay;if(cred[ci].amt<0.005)ci++;if(debt[di].amt<0.005)di++;}
+    return {bal,trs};
+  },
+  settleCurs(t){const s=new Set();(t.expenses||[]).forEach(e=>s.add(e.cur||'TWD'));(t.fund||[]).forEach(f=>s.add(f.cur||'TWD'));return [...s].sort((a,b)=>(a==='TWD'?-1:b==='TWD'?1:0));},
+  openSettlement(){
+    const t=this.trip();const members=this.memberNames(t);
+    const curs=this.settleCurs(t);
+    let html=`<div class="sheet-head"><h3>💵 公費結算</h3><button class="x" onclick="App.close()">×</button></div>`;
+    if(!members.length){html+='<div class="muted" style="font-size:13px">還沒有成員（開啟過這趟的人會自動成為成員）。</div>';document.getElementById('sheet').innerHTML=html;this.open();return;}
+    if(!curs.length){html+='<div class="muted" style="font-size:13px">目前沒有收支，無法結算。</div>';document.getElementById('sheet').innerHTML=html;this.open();return;}
+    html+=`<p class="muted" style="font-size:12px;margin:2px 0 12px">依「每筆公費的分攤成員」與各自「預繳公積金＋代墊」計算（依幣別分開）。點成員可看個別明細。</p>`;
+    curs.forEach(c=>{
+      const {bal,trs}=this.settleCur(t,c);
+      html+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)">
+        <div class="row"><b>${c}</b></div>
+        <div style="margin-top:6px">${bal.map(x=>`<div class="row" style="padding:4px 0;font-size:14px"><span onclick="App.openMemberDetail('${this.esc(x.m).replace(/'/g,"&#39;")}')" style="color:var(--brand-d);font-weight:700;cursor:pointer">${this.esc(x.m)}</span><span class="right" style="font-weight:700;color:${x.b>0.005?'#0891b2':x.b<-0.005?'var(--red)':'var(--muted)'}">${x.b>0.005?'應收 '+this.money(x.b,c):x.b<-0.005?'應付 '+this.money(-x.b,c):'結清'}</span></div>`).join('')}</div>
+        <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px"><div class="muted" style="font-size:12px;margin-bottom:4px">建議轉帳：</div>
+          ${trs.length?trs.map(x=>`<div style="font-size:14px;padding:3px 0">💸 <b>${this.esc(x.from)}</b> 付給 <b>${this.esc(x.to)}</b>：${this.money(x.amt,c)}</div>`).join(''):'<div class="muted" style="font-size:13px">已結清</div>'}</div></div>`;
+    });
+    document.getElementById('sheet').innerHTML=html;this.open();
+  },
+  openMemberDetail(name){
+    const t=this.trip();const curs=this.settleCurs(t);
+    let html=`<div class="sheet-head"><h3>👤 ${this.esc(name)} 的收付</h3><button class="x" onclick="App.close()">×</button></div>`;
+    let any=false;
+    curs.forEach(c=>{
+      const {bal,trs}=this.settleCur(t,c);
+      const my=bal.find(x=>x.m===name);if(!my)return;
+      const fromMe=trs.filter(x=>x.from===name),toMe=trs.filter(x=>x.to===name);
+      if(Math.abs(my.b)<0.005&&!fromMe.length&&!toMe.length)return;
+      any=true;
+      html+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)">
+        <div class="row"><b>${c}</b><span class="right" style="font-weight:800;color:${my.b>0.005?'#0891b2':my.b<-0.005?'var(--red)':'var(--muted)'}">${my.b>0.005?'應收 '+this.money(my.b,c):my.b<-0.005?'應付 '+this.money(-my.b,c):'結清'}</span></div>
+        ${fromMe.length?`<div style="margin-top:8px"><div class="muted" style="font-size:12px">你要付給：</div>${fromMe.map(x=>`<div style="font-size:14px;padding:2px 0">💸 付給 <b>${this.esc(x.to)}</b>：${this.money(x.amt,c)}</div>`).join('')}</div>`:''}
+        ${toMe.length?`<div style="margin-top:8px"><div class="muted" style="font-size:12px">還沒收回（別人要付給你）：</div>${toMe.map(x=>`<div style="font-size:14px;padding:2px 0">🫰 <b>${this.esc(x.from)}</b> 要付給你：${this.money(x.amt,c)}</div>`).join('')}</div>`:''}
+      </div>`;
+    });
+    if(!any)html+='<div class="muted" style="font-size:14px;margin-top:4px">目前結清，沒有要收或付的款項。</div>';
+    document.getElementById('sheet').innerHTML=html;this.open();
+  },
+
+  open(){document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';},
+  close(){if(this._gate)return;document.getElementById('modal').classList.remove('open');document.body.style.overflow='';},
+  copyAddr(itemId){const it=this.itemById(itemId);if(!it||!it.addr)return;const s=it.addr;
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(()=>this.toast('已複製地址')).catch(()=>prompt('複製地址：',s));
+    else prompt('複製地址：',s);},
+  toast(msg){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none';document.body.appendChild(el);}el.textContent=msg;el.style.opacity='1';clearTimeout(this._tt);this._tt=setTimeout(()=>el.style.opacity='0',1400);},
+
+  /* ================= 雲端共編（每趟各自，用邀請連結加入） ================= */
+  sync:{
+    db:null,subs:{},deb:{},applying:false,clientId:Math.random().toString(36).slice(2,9),
+    setDot(color){const el=document.getElementById('syncDot');if(el)el.style.background=color;},
+    loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=rej;document.head.appendChild(s);})},
+    async loadSDK(){if(window.firebase&&firebase.firestore&&firebase.auth)return;const b='https://www.gstatic.com/firebasejs/10.12.2/';await this.loadOne(b+'firebase-app-compat.js');await this.loadOne(b+'firebase-firestore-compat.js');await this.loadOne(b+'firebase-auth-compat.js');},
+    async ensureDb(){if(this.db)return this.db;await this.loadSDK();if(!firebase.apps.length)firebase.initializeApp(FB_CFG);this.db=firebase.firestore();return this.db;},
+    ref(id){return this.db.collection(COLLECTION).doc(id);},
+    async connect(){
+      this.setDot('#fde68a');
+      try{await this.ensureDb();}catch(e){this.setDot('#fca5a5');return;}
+      for(const t of App.data.trips.slice()){
+        try{const s=await this.ref(t.id).get();
+          if(s.exists&&s.data().payload)this.applyRemoteTrip(t.id,s.data());
+          else this.ref(t.id).set({payload:JSON.stringify(t),by:this.clientId,at:Date.now()}).catch(()=>{});
+        }catch(e){}
+        this.subscribe(t.id);
+      }
+      const m=(location.hash||'').match(/join=([A-Za-z0-9_-]+)/);
+      if(m){await this.joinByCode(m[1],true);try{history.replaceState(null,'',location.href.split('#')[0]);}catch(e){}}
+      this.setDot('#4ade80');
+    },
+    subscribe(id){if(this.subs[id]||!this.db)return;try{this.subs[id]=this.ref(id).onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;this.applyRemoteTrip(id,s.data());},()=>{});}catch(e){}},
+    unsubscribe(id){if(this.subs[id]){try{this.subs[id]();}catch(e){}delete this.subs[id];}},
+    applyRemoteTrip(id,d){if(!d||!d.payload)return;try{const inc=JSON.parse(d.payload);if(!inc||!inc.id)return;this.applying=true;const i=App.data.trips.findIndex(t=>t.id===inc.id);if(i>-1)App.data.trips[i]=inc;else App.data.trips.push(inc);if(!App.data.active||!App.trip())App.data.active=App.data.trips[0]?.id||null;localStorage.setItem(STORE,JSON.stringify(App.data));App.render();this.applying=false;this.setDot('#4ade80');}catch(e){this.applying=false;}},
+    pushActive(){if(this.applying)return;const t=App.trip();if(t)this.pushTrip(t);},
+    pushTrip(trip){if(!trip)return;this.ensureDb().then(()=>{clearTimeout(this.deb[trip.id]);this.setDot('#fde68a');this.deb[trip.id]=setTimeout(()=>{this.ref(trip.id).set({payload:JSON.stringify(trip),by:this.clientId,at:Date.now()}).then(()=>this.setDot('#4ade80')).catch(()=>this.setDot('#fca5a5'));},600);}).catch(()=>{});},
+    async joinByCode(id,silent){id=(id||'').trim();if(!id)return;try{await this.ensureDb();}catch(e){if(!silent)alert('雲端連線失敗');return;}
+      let s;try{s=await this.ref(id).get();}catch(e){if(!silent)alert('讀取失敗：'+e.message);return;}
+      if(!s.exists||!s.data().payload){if(!silent)alert('找不到這個邀請連結的旅程');return;}
+      this.applyRemoteTrip(id,s.data());const t=App.data.trips.find(x=>x.id===id);if(t){App.data.active=t.id;try{localStorage.setItem(STORE,JSON.stringify(App.data));}catch(e){}}
+      this.subscribe(id);App.render();if(!silent)alert('已加入旅程！');},
+  },
+  inviteLink(id){return location.href.split('#')[0]+'#join='+id;},
+  copyInvite(id){const url=this.inviteLink(id);
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(()=>this.toast('已複製邀請連結')).catch(()=>prompt('複製邀請連結：',url));
+    else prompt('複製邀請連結：',url);},
+  promptJoin(){const v=prompt('貼上邀請連結（或旅程代碼）加入旅程：');if(!v||!v.trim())return;const m=v.match(/join=([A-Za-z0-9_-]+)/);this.sync.joinByCode(m?m[1]:v.trim());},
+};
+window.addEventListener('DOMContentLoaded',()=>{App.init();window.addEventListener('resize',()=>App.setHeaderH());});
+</script>
+</body>
+</html>
