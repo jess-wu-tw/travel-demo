@@ -13,12 +13,15 @@
     --red:#ef4444; --shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.06); --radius:15px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
-  @media(max-width:768px){html,body{max-width:100%;overscroll-behavior-x:none}html{overflow-x:clip}}
+  html,body{margin:0;padding:0;width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none}
+  @supports not (overflow:clip){html,body{overflow-x:hidden}}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",Roboto,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);line-height:1.55;padding-bottom:82px}
+    background:var(--bg);color:var(--ink);line-height:1.55;padding-bottom:82px;
+    /* 長網址、長地址不會把版面撐寬，避免手機可以左右拖動 */
+    overflow-wrap:break-word;overflow-wrap:anywhere;word-break:break-word}
   button{font-family:inherit;cursor:pointer}
-  input,select,textarea{font-family:inherit;font-size:15px}
+  /* 16px 以下 iOS Safari 會在點輸入框時自動放大，放大後就能左右拖動畫面 */
+  input,select,textarea{font-family:inherit;font-size:16px;max-width:100%}
   .wrap{max-width:720px;margin:0 auto;padding:0 16px}
 
   header{background:linear-gradient(135deg,#2bb673,#159e8e);color:#fff;padding:14px 0;position:sticky;top:0;z-index:30;box-shadow:0 2px 6px rgba(15,23,42,.12)}
@@ -56,7 +59,7 @@
   .empty{text-align:center;padding:40px 16px;color:var(--muted)}
   .empty .big{font-size:44px;margin-bottom:8px}
 
-  .datefilter{display:flex;gap:8px;overflow-x:auto;padding:8px 0 10px;-webkit-overflow-scrolling:touch;position:sticky;top:var(--hh,64px);z-index:20;background:var(--bg);box-shadow:0 6px 8px -6px rgba(15,23,42,.12)}
+  .datefilter{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:8px 0 10px;-webkit-overflow-scrolling:touch;position:sticky;top:var(--hh,64px);z-index:20;background:var(--bg);box-shadow:0 6px 8px -6px rgba(15,23,42,.12)}
   .datefilter .chip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap}
   .datefilter .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
   .dategroup{margin-bottom:16px}
@@ -178,8 +181,19 @@ const App={
   },
   onSignedIn(u){
     this._gate=false;this.close();
+    this.switchAccountIfNeeded(u);
     this.renderTripSel();this.renderMe();this.go(this.tab);this.sync.connect();
     if(!this.getName())this.openNameModal(u.displayName||'');
+  },
+  /* 同一台裝置換成另一個 Google 帳號時，清掉上一個人的本機資料，改由雲端重新帶出 */
+  switchAccountIfNeeded(u){
+    let prev='';try{prev=localStorage.getItem('tm2_uid')||'';}catch(e){}
+    if(prev&&prev!==u.uid){
+      Object.keys(this.sync.subs).forEach(id=>this.sync.unsubscribe(id));
+      this.data={trips:[],active:null};
+      try{localStorage.setItem(STORE,JSON.stringify(this.data));localStorage.removeItem('tm2_name');}catch(e){}
+    }
+    try{localStorage.setItem('tm2_uid',u.uid);}catch(e){}
   },
   showGate(msg){
     document.getElementById('sheet').innerHTML=`
@@ -241,12 +255,13 @@ const App={
   render(){this.ensureMember(this.trip());this.renderTripSel();this.renderMe();this.renderPlans();this.renderItems();this.renderMoney();this.setHeaderH();},
   setHeaderH(){const h=document.querySelector('header');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');},
   money(n,c){n=Number(n)||0;return (c||'')+' '+n.toLocaleString(undefined,{maximumFractionDigits:0})},
+  fallbackName(){const u=this.user;if(!u)return '';return u.displayName||String(u.email||'').split('@')[0]||'旅伴';},
   ensureMember(t){
     if(!t||!this.user)return;if(!t.members)t.members=[];
-    const uid=this.user.uid,name=this.getName();if(!name)return;
+    const uid=this.user.uid,name=this.getName()||this.fallbackName();if(!name)return;
     const ex=t.members.find(m=>m.uid===uid);
     if(!ex){t.members.push({uid,name});this.save();}
-    else if(ex.name!==name){ex.name=name;this.save();}
+    else if(ex.name!==name&&this.getName()){ex.name=name;this.save();}
   },
 
   renderTripSel(){
@@ -278,8 +293,10 @@ const App={
   },
   delTrip(id){
     if(!confirm('刪除旅程會一併刪除它的所有項目與行程，確定？'))return;
+    const t=this.data.trips.find(x=>x.id===id);
     this.sync.unsubscribe(id);
-    this.data.trips=this.data.trips.filter(t=>t.id!==id);
+    this.sync.leaveTrip(t);   /* 從雲端成員名單移除自己，否則下次登入又會被自動帶回來 */
+    this.data.trips=this.data.trips.filter(x=>x.id!==id);
     this.data.active=this.data.trips[0]?.id||null;
     this.save();this.close();this.render();
   },
@@ -591,11 +608,11 @@ const App={
   copyAddr(itemId){const it=this.itemById(itemId);if(!it||!it.addr)return;const s=it.addr;
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(()=>this.toast('已複製地址')).catch(()=>prompt('複製地址：',s));
     else prompt('複製地址：',s);},
-  toast(msg){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none';document.body.appendChild(el);}el.textContent=msg;el.style.opacity='1';clearTimeout(this._tt);this._tt=setTimeout(()=>el.style.opacity='0',1400);},
+  toast(msg){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px);text-align:center';document.body.appendChild(el);}el.textContent=msg;el.style.opacity='1';clearTimeout(this._tt);this._tt=setTimeout(()=>el.style.opacity='0',1400);},
 
   /* ================= 雲端共編（每趟各自，用邀請連結加入） ================= */
   sync:{
-    db:null,subs:{},deb:{},applying:false,clientId:Math.random().toString(36).slice(2,9),
+    db:null,subs:{},deb:{},docUids:{},applying:false,clientId:Math.random().toString(36).slice(2,9),
     setDot(color){const el=document.getElementById('syncDot');if(el)el.style.background=color;},
     loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=rej;document.head.appendChild(s);})},
     async loadSDK(){if(window.firebase&&firebase.firestore&&firebase.auth)return;const b='https://www.gstatic.com/firebasejs/10.12.2/';await this.loadOne(b+'firebase-app-compat.js');await this.loadOne(b+'firebase-firestore-compat.js');await this.loadOne(b+'firebase-auth-compat.js');},
@@ -607,24 +624,70 @@ const App={
       for(const t of App.data.trips.slice()){
         try{const s=await this.ref(t.id).get();
           if(s.exists&&s.data().payload)this.applyRemoteTrip(t.id,s.data());
-          else this.ref(t.id).set({payload:JSON.stringify(t),by:this.clientId,at:Date.now()}).catch(()=>{});
+          else this.ref(t.id).set({payload:JSON.stringify(t),uids:this.uidsOf(t),by:this.clientId,at:Date.now()}).catch(()=>{});
         }catch(e){}
         this.subscribe(t.id);
       }
       const m=(location.hash||'').match(/join=([A-Za-z0-9_-]+)/);
       if(m){await this.joinByCode(m[1],true);try{history.replaceState(null,'',location.href.split('#')[0]);}catch(e){}}
+      await this.discoverMyTrips();
+      this.backfillUids();
       this.setDot('#4ade80');
+    },
+    /* 依登入者的 uid，從雲端撈出所有他是成員的旅程（換裝置／換瀏覽器也帶得出來） */
+    async discoverMyTrips(){
+      const u=App.user;if(!u||!this.db)return;
+      let snap;
+      try{snap=await this.db.collection(COLLECTION).where('uids','array-contains',u.uid).get();}
+      catch(e){return;}
+      let added=0;
+      snap.forEach(doc=>{
+        const d=doc.data();if(!d||!d.payload)return;
+        const known=App.data.trips.some(t=>t.id===doc.id);
+        this.applyRemoteTrip(doc.id,d);
+        this.subscribe(doc.id);
+        if(!known&&App.data.trips.some(t=>t.id===doc.id))added++;
+      });
+      if(added){
+        if(!App.trip())App.data.active=App.data.trips[0]?.id||null;
+        try{localStorage.setItem(STORE,JSON.stringify(App.data));}catch(e){}
+        App.render();App.toast('已帶出 '+added+' 趟旅程');
+      }
+    },
+    /* 舊資料沒有 uids 欄位，登入後補寫一次，之後才查得到 */
+    backfillUids(){
+      const u=App.user;if(!u)return;
+      App.data.trips.forEach(t=>{
+        App.ensureMember(t);
+        const remote=this.docUids[t.id];
+        if(remote&&remote.includes(u.uid))return;   // 雲端已經記錄過，不用重寫
+        if(this.uidsOf(t).includes(u.uid))this.pushTrip(t);
+      });
+    },
+    uidsOf(trip){return [...new Set(((trip&&trip.members)||[]).map(m=>m&&m.uid).filter(Boolean))];},
+    /* 刪除／離開旅程：把自己從雲端成員移除；沒人了就整份刪掉 */
+    leaveTrip(trip){
+      const u=App.user;if(!trip||!u)return;
+      clearTimeout(this.deb[trip.id]);delete this.docUids[trip.id];
+      const rest={...trip,members:((trip.members)||[]).filter(m=>m&&m.uid!==u.uid)};
+      this.ensureDb().then(()=>{
+        if(!rest.members.length){this.ref(trip.id).delete().catch(()=>{});return;}
+        this.ref(trip.id).set({payload:JSON.stringify(rest),uids:this.uidsOf(rest),by:this.clientId,at:Date.now()}).catch(()=>{});
+      }).catch(()=>{});
     },
     subscribe(id){if(this.subs[id]||!this.db)return;try{this.subs[id]=this.ref(id).onSnapshot(s=>{if(!s.exists||s.metadata.hasPendingWrites)return;this.applyRemoteTrip(id,s.data());},()=>{});}catch(e){}},
     unsubscribe(id){if(this.subs[id]){try{this.subs[id]();}catch(e){}delete this.subs[id];}},
-    applyRemoteTrip(id,d){if(!d||!d.payload)return;try{const inc=JSON.parse(d.payload);if(!inc||!inc.id)return;this.applying=true;const i=App.data.trips.findIndex(t=>t.id===inc.id);if(i>-1)App.data.trips[i]=inc;else App.data.trips.push(inc);if(!App.data.active||!App.trip())App.data.active=App.data.trips[0]?.id||null;localStorage.setItem(STORE,JSON.stringify(App.data));App.render();this.applying=false;this.setDot('#4ade80');}catch(e){this.applying=false;}},
+    applyRemoteTrip(id,d){if(!d||!d.payload)return;this.docUids[id]=d.uids||null;try{const inc=JSON.parse(d.payload);if(!inc||!inc.id)return;this.applying=true;const i=App.data.trips.findIndex(t=>t.id===inc.id);if(i>-1)App.data.trips[i]=inc;else App.data.trips.push(inc);if(!App.data.active||!App.trip())App.data.active=App.data.trips[0]?.id||null;localStorage.setItem(STORE,JSON.stringify(App.data));App.render();this.applying=false;this.setDot('#4ade80');}catch(e){this.applying=false;}},
     pushActive(){if(this.applying)return;const t=App.trip();if(t)this.pushTrip(t);},
-    pushTrip(trip){if(!trip)return;this.ensureDb().then(()=>{clearTimeout(this.deb[trip.id]);this.setDot('#fde68a');this.deb[trip.id]=setTimeout(()=>{this.ref(trip.id).set({payload:JSON.stringify(trip),by:this.clientId,at:Date.now()}).then(()=>this.setDot('#4ade80')).catch(()=>this.setDot('#fca5a5'));},600);}).catch(()=>{});},
+    pushTrip(trip){if(!trip)return;this.ensureDb().then(()=>{clearTimeout(this.deb[trip.id]);this.setDot('#fde68a');this.deb[trip.id]=setTimeout(()=>{const uids=this.uidsOf(trip);this.docUids[trip.id]=uids;this.ref(trip.id).set({payload:JSON.stringify(trip),uids,by:this.clientId,at:Date.now()}).then(()=>this.setDot('#4ade80')).catch(()=>this.setDot('#fca5a5'));},600);}).catch(()=>{});},
     async joinByCode(id,silent){id=(id||'').trim();if(!id)return;try{await this.ensureDb();}catch(e){if(!silent)alert('雲端連線失敗');return;}
       let s;try{s=await this.ref(id).get();}catch(e){if(!silent)alert('讀取失敗：'+e.message);return;}
       if(!s.exists||!s.data().payload){if(!silent)alert('找不到這個邀請連結的旅程');return;}
       this.applyRemoteTrip(id,s.data());const t=App.data.trips.find(x=>x.id===id);if(t){App.data.active=t.id;try{localStorage.setItem(STORE,JSON.stringify(App.data));}catch(e){}}
-      this.subscribe(id);App.render();if(!silent)alert('已加入旅程！');},
+      this.subscribe(id);
+      /* 登記自己是成員，之後在任何裝置登入都會自動帶出這趟 */
+      if(t){App.ensureMember(t);this.pushTrip(t);}
+      App.render();if(!silent)alert('已加入旅程！');},
   },
   inviteLink(id){return location.href.split('#')[0]+'#join='+id;},
   copyInvite(id){const url=this.inviteLink(id);
